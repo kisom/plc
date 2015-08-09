@@ -45,32 +45,49 @@ truthTable bindings (Disjunction p q) = do
 truthTable bindings (Equivalence p q) = do
     p' <- truth bindings p
     q' <- truth bindings q
-    if p' == q'
-       then return True
-       else throwError $ Inconsistent (Equivalence p q)
+    return $ p' == q'
 truthTable bindings (Negation p)      = do
     p' <- truth bindings p
     return $ not p'
+
+data Result = Result Bindings [Theorem] Bool
+
+showResult :: Result -> String
+showResult (Result b _ v) = "Result:\n-------\nBindings:\n" ++ (show b)
+                            ++ "Result: " ++ (show v)
+
+instance Show Result where show = showResult
 
 data Step = Step Bindings Bool
 
 evaluate :: Bindings -> Theorem -> ProofError Step
 evaluate bindings (Axiom name value) = do
     result <- bindName bindings name value
+    liftIO $ putStrLn $ "Axiom " ++ name ++ " <- " ++ (show value) ++ " entered."
     return $ Step result True
 evaluate bindings (Theorem term)     = truth bindings term >>=
                                        return . Step bindings
 
-step :: Proof -> ProofError Proof
-step (Proof bindings (theorem:theorems)) = do
+step :: Result -> ProofError Result
+step (Result bindings (theorem:theorems) _) = do
   liftIO $ putStrLn $ "Evaluating theorem: " ++ (show theorem)
   result <- liftIO $ runExceptT $ evaluate bindings theorem
   case result of
-    Right (Step bindings' _) -> return $ Proof bindings' theorems
+    Right (Step bindings' v) -> do
+      liftIO $ putStrLn $ "Truth value: " ++ (show v)
+      return $ Result bindings' theorems v
     Left err                 -> throwError err
-step proof = return proof
+step (Result b thms v) = return $ Result b thms v
 
-check :: Proof -> ProofError Proof
-check proof@(Proof _ (_:_)) = step proof >>= check
-check proof@(Proof _ [])    = return $ proof
+check :: Proof -> ProofError Result
+check (Proof b thms) = check' (Result b thms False)
+  where check' proof@(Result _ (_:_) _) = step proof >>= check'
+        check' result@(Result _ [] _)    = return result
 
+prove :: Proof -> ProofError Bindings
+prove proof = do
+  result <- liftIO $ runExceptT $ check proof
+  case result of
+    Left err                 -> throwError err
+    Right (Result b _ True)  -> return b
+    Right (Result _ _ False) -> throwError Invalid

@@ -56,12 +56,14 @@ instance Show Term where show = showTerm
 data Error = Unbound String     -- ^ A variable that should be bound isn't.
            | Rebinding String   -- ^ A variable is being rebound.
            | Inconsistent Term  -- ^ The term is inconsistent.
+           | Invalid            -- ^ The proof is invalid.
 
 -- | 'showError' returns a 'String' representation of an 'Error'.
 showError :: Error -> String
 showError (Unbound name) = "The variable " ++ name ++ " is unbound."
 showError (Rebinding name) = "The variable " ++ name ++ " is already bound and can't be rebound."
 showError (Inconsistent term) = "The term " ++ (show term) ++ " is inconsistent."
+showError Invalid = "The proof evaluated to False."
 
 -- | The implementation of the 'Show' typeclass for 'Error' uses
 --   'showError'.
@@ -78,40 +80,43 @@ trapError action = catchError action (return . show)
 -------------------------------------------------------------------------------
 
 -- | A binding stores a set of name and value pairings.
-type Bindings = Map.Map String Bool
+data Bindings = Bindings (Map.Map String Bool)
 
 -- | 'newBindings' instantiates a new, empty set of bindings.
 newBindings :: Bindings
-newBindings = Map.fromList []
+newBindings = Bindings $ Map.fromList []
 
 -- | 'nullBindings' returns 'True' if there are no bindings.
 nullBindings :: Bindings -> Bool
-nullBindings bindings = Map.null bindings
+nullBindings (Bindings bindings) = Map.null bindings
 
 -- | 'isBound' returns 'True' if 'name' is bound.
 isBound :: Bindings -> String -> Bool
-isBound bindings name = Map.member name bindings
+isBound (Bindings bindings) name = Map.member name bindings
 
 -- | 'getName' returns the binding for 'name'.
 getName :: Bindings -> String -> ProofError Term
-getName bindings name = do
-  if isBound bindings name
+getName b@(Bindings bindings) name = do
+  if isBound b name
      then return $ Value $ bindings Map.! name
      else throwError $ Unbound name
 
 -- | 'bindName' binds 'val' to 'name'.
 bindName :: Bindings -> String -> Bool -> ProofError Bindings
-bindName bindings name val = case isBound bindings name of
+bindName b@(Bindings bindings) name val = case isBound b name of
     True  -> throwError $ Rebinding name
-    False -> return $ Map.insert name val bindings
+    False -> return $ Bindings $ Map.insert name val bindings
 
 -- | 'showPair' returns a string representation of a binding.
 showPair :: (String, Bool) -> String
 showPair (name, val) = name ++ " <- " ++ (show val)
 
--- | 'showBindings' displays the current bindings.
+-- | 'showBindings' returns the bindings as a string.
 showBindings :: Bindings -> String
-showBindings bindings = unlines . map showPair $ Map.toAscList bindings
+showBindings (Bindings bindings) = unlines . map showPair $ Map.toAscList bindings
+
+-- | The 'Show' typeclass is provided using 'showBindings'.
+instance Show Bindings where show = showBindings
 
 -------------------------------------------------------------------------------
 ------------------------------ Term Evaluation --------------------------------
@@ -137,8 +142,8 @@ data Proof = Proof Bindings [Theorem]
 -- | 'showProof' returns a 'String' representation of a 'Proof'.
 showProof :: Proof -> String
 showProof p@(Proof b thms)
-  | null b = showProofTheorems p
-  | True   = showProofBindings p
+  | nullBindings b = showProofTheorems p
+  | True           = showProofBindings p
 
 showProofTheorems (Proof _ [])   = "null proof"
 showProofTheorems (Proof _ thms) = "Proof:\n" ++ (unlines $ map show thms)
