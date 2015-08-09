@@ -1,0 +1,18 @@
+#+TITLE: A Propositional Logic Checker
+
+* Introduction and Motivation
+
+  While reading The Little Prover and working through Write Yourself a
+  Scheme in 48 Hours, it seemed like it would be an interesting
+  intellectual challenge to write a prover for simple propositional
+  logic. This is that attempt.
+
+* Source files
+
+  The implementation is covered in:
+
+  + Data.Logic.Propositional.Class contains the type definitions for
+    propositional logic theorems.
+
+  + Data.Logic.Propositional.Parser contains the parser for reading
+    theorems from a string.
