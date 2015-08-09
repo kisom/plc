@@ -10,7 +10,7 @@ that attempt.
 ## Current Status
 
 ```
-*Main> :t testProof1                                                                            [41/1993]
+*Main> :t testProof1
 testProof1 :: Proof
 *Main> :info Proof
 data Proof = Proof Bindings [Theorem]
