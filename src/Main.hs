@@ -47,7 +47,7 @@ testProof7 = Proof newBindings
              ,Axiom "B" True
              ,Theorem (Implies
               (Disjunction varA (Negation varA))
-              (Equivalence varA (Negation varB)))]
+              (Equivalence varA varB))]
 
 testProofs = [testProof1, testProof2, testProof3, testProof4, testProof5
              ,testProof6]

@@ -10,31 +10,19 @@ that attempt.
 ## Current Status
 
 ```
-*Main> :t testProof1
-testProof1 :: Proof
+*Data.Logic.Propositional> :load src/Main.hs 
+[1 of 3] Compiling Data.Logic.Propositional.Class ( src/Data/Logic/Propositional/Class.hs, interpreted )
+[2 of 3] Compiling Data.Logic.Propositional ( src/Data/Logic/Propositional.hs, interpreted )
+[3 of 3] Compiling Main             ( src/Main.hs, interpreted )
+Ok, modules loaded: Data.Logic.Propositional, Data.Logic.Propositional.Class, Main.
+*Main> :info testProof7
+testProof7 :: Proof     -- Defined at src/Main.hs:45:1
 *Main> :info Proof
 data Proof = Proof Bindings [Theorem]
-        -- Defined at src/Data/Logic/Propositional/Class.hs:135:1
+        -- Defined at src/Data/Logic/Propositional/Class.hs:140:1
 instance Show Proof
-  -- Defined at src/Data/Logic/Propositional/Class.hs:150:10
-*Main> testProofs
-[Proof:
-Axiom: A ← True
-Theorem: A ^ !A
-,Proof:
-Axiom: A ← True
-Theorem: A ~ A
-,Proof:
-Axiom: A ← True
-Theorem: t ~ t
-,Proof:
-Theorem: A ^ !A
-,Proof:
-Axiom: A ← True
-Axiom: B ← False
-Theorem: A ~ B
-]
-*Main> runProofs testProofs
+  -- Defined at src/Data/Logic/Propositional/Class.hs:155:10
+*Main> runProofs [testProof3, testProof7]
 
 Checking proof
 Proof:
@@ -42,6 +30,8 @@ Axiom: A ← True
 Theorem: A ^ !A
 
 Evaluating theorem: Axiom: A ← True
+Axiom A <- True entered.
+Truth value: True
 Evaluating theorem: Theorem: A ^ !A
 Evaluating term: A ^ !A
 Evaluating term: A
@@ -49,67 +39,71 @@ Evaluating term: t
 Evaluating term: !A
 Evaluating term: A
 Evaluating term: t
-Proof is consistent
-Null proof; bindings:
-A <- True
-
+Truth value: False
+Proof is invalid: The proof evaluated to False.
 
 Checking proof
 Proof:
 Axiom: A ← True
-Theorem: A ~ A
+Axiom: B ← True
+Theorem: A v !A => A ~ !B
 
 Evaluating theorem: Axiom: A ← True
-Evaluating theorem: Theorem: A ~ A
-Evaluating term: A ~ A
+Axiom A <- True entered.
+Truth value: True
+Evaluating theorem: Axiom: B ← True
+Axiom B <- True entered.
+Truth value: True
+Evaluating theorem: Theorem: A v !A => A ~ !B
+Evaluating term: A v !A => A ~ !B
+Evaluating term: A v !A
 Evaluating term: A
 Evaluating term: t
+Evaluating term: !A
 Evaluating term: A
 Evaluating term: t
-Proof is consistent
-Null proof; bindings:
-A <- True
-
+Evaluating term: A ~ !B
+Evaluating term: A
+Evaluating term: t
+Evaluating term: !B
+Evaluating term: B
+Evaluating term: t
+Truth value: False
+Proof is invalid: The proof evaluated to False.
+*Main> :reload
+[3 of 3] Compiling Main             ( src/Main.hs, interpreted )
+Ok, modules loaded: Data.Logic.Propositional, Data.Logic.Propositional.Class, Main.
+*Main> runProof testProof7
 
 Checking proof
 Proof:
 Axiom: A ← True
-Theorem: t ~ t
+Axiom: B ← True
+Theorem: A v !A => A ~ B
 
 Evaluating theorem: Axiom: A ← True
-Evaluating theorem: Theorem: t ~ t
-Evaluating term: t ~ t
-Evaluating term: t
-Evaluating term: t
-Proof is consistent
-Null proof; bindings:
-A <- True
-
-
-Checking proof
-Proof:
-Theorem: A ^ !A
-
-Evaluating theorem: Theorem: A ^ !A
-Evaluating term: A ^ !A
+Axiom A <- True entered.
+Truth value: True
+Evaluating theorem: Axiom: B ← True
+Axiom B <- True entered.
+Truth value: True
+Evaluating theorem: Theorem: A v !A => A ~ B
+Evaluating term: A v !A => A ~ B
+Evaluating term: A v !A
 Evaluating term: A
-Proof is inconsistent: The variable A is unbound.
-
-Checking proof
-Proof:
-Axiom: A ← True
-Axiom: B ← False
-Theorem: A ~ B
-
-Evaluating theorem: Axiom: A ← True
-Evaluating theorem: Axiom: B ← False
-Evaluating theorem: Theorem: A ~ B
+Evaluating term: t
+Evaluating term: !A
+Evaluating term: A
+Evaluating term: t
 Evaluating term: A ~ B
 Evaluating term: A
 Evaluating term: t
 Evaluating term: B
-Evaluating term: f
-Proof is inconsistent: The term A ~ B is inconsistent.
+Evaluating term: t
+Truth value: True
+Proof is valid
+A <- True
+B <- True
 ```
 
 ## Source files
