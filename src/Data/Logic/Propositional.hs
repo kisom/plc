@@ -51,8 +51,8 @@ evaluate bindings (Theorem term)     = truthTable bindings term
 
 step :: Proof -> ProofError Proof
 step (bindings, (theorem:theorems)) = do
+    liftIO $ putStrLn $ "Evaluating " ++ show theorem
     bindings' <- liftIO bindings
-    liftIO $ showBindings bindings'
     result    <- liftIO $ runExceptT $ evaluate bindings' theorem
     case result of
         Left   err -> throwError err

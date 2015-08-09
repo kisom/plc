@@ -16,3 +16,23 @@
 
   + Data.Logic.Propositional.Parser contains the parser for reading
     theorems from a string.
+
+* TODO
+
+  + Add parsing; right now, proofs are constructed via the type constructors,
+    which is rather unwieldy. Something to think about: precedence and order
+    of operations.
+
+  + Bindings aren't working:
+
+#+BEGIN_EXAMPLE
+*Main> checkProof testProof
+Evaluating Axiom: A ← True
+Evaluating Theorem: A ^ !A
+"The variable A is unbound."
+*Main> checkProof testProof'
+Evaluating Axiom: A ← True
+Evaluating Theorem: A ~ A
+"The variable A is unbound."
+#+END_EXAMPLE
+

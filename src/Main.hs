@@ -8,7 +8,7 @@ import Data.String
 
 testThm = Theorem (Conjunction (Variable "A") (Negation (Variable "A")))
 testProof = (nullBindings, [Axiom "A" True, testThm])
-testProof' = (nullBindings, [Axiom "A" True])
+testProof' = (nullBindings, [Axiom "A" True, (Theorem (Equivalence (Variable "A") (Variable "A")))])
 
 showProofBindings :: Proof -> IO ()
 showProofBindings (bindings, _) = do
