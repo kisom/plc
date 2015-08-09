@@ -18,6 +18,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Except
 import Control.Monad.Trans.Except
 import Data.IORef
+import qualified Data.Map as Map
 
 -------------------------------------------------------------------------------
 ------------------------------ Term Definitions -------------------------------
@@ -77,45 +78,40 @@ trapError action = catchError action (return . show)
 -------------------------------------------------------------------------------
 
 -- | A binding stores a set of name and value pairings.
-type Bindings = IORef [(String, Bool)]
+type Bindings = Map.Map String Bool
 
--- | 'nullBindings' is a helper function to create a new, empty set
---   of bindings.
-nullBindings :: IO Bindings
-nullBindings = newIORef []
+-- | 'newBindings' instantiates a new, empty set of bindings.
+newBindings :: Bindings
+newBindings = Map.fromList []
 
--- | 'isBound' returns 'True' if 'name' is present in the set of bindings.
-isBound :: Bindings -> String -> IO Bool
-isBound bindings name = readIORef bindings >>= return . maybe False (const True) . lookup name
+-- | 'nullBindings' returns 'True' if there are no bindings.
+nullBindings :: Bindings -> Bool
+nullBindings bindings = Map.null bindings
 
--- | 'getName' returns the binding for a name in the set of bindings.
-getName :: Bindings -> String -> ProofError Bool
+-- | 'isBound' returns 'True' if 'name' is bound.
+isBound :: Bindings -> String -> Bool
+isBound bindings name = Map.member name bindings
+
+-- | 'getName' returns the binding for 'name'.
+getName :: Bindings -> String -> ProofError Term
 getName bindings name = do
-    bindings' <- liftIO $ readIORef bindings
-    maybe (throwError $ Unbound name)
-          (return . id)
-          (lookup name bindings')
+  if isBound bindings name
+     then return $ Value $ bindings Map.! name
+     else throwError $ Unbound name
 
--- | 'bindName' adds a binding to the set.
-bindName :: Bindings -> String -> Bool -> ProofError Bool
-bindName bindings name val = do
-    bindings' <- liftIO $ readIORef bindings
-    exists    <- liftIO $ isBound bindings name
-    case exists of
-        True  -> throwError $ Rebinding name
-        False -> do
-            val' <- liftIO $ writeIORef bindings ((name, val) : bindings')
-            return val
+-- | 'bindName' binds 'val' to 'name'.
+bindName :: Bindings -> String -> Bool -> ProofError Bindings
+bindName bindings name val = case isBound bindings name of
+    True  -> throwError $ Rebinding name
+    False -> return $ Map.insert name val bindings
 
-showPair :: String -> Bool -> String
-showPair name val = name ++ " <- " ++ (show val)
+-- | 'showPair' returns a string representation of a binding.
+showPair :: (String, Bool) -> String
+showPair (name, val) = name ++ " <- " ++ (show val)
 
-showBindings_ :: [(String, Bool)] -> IO ()
-showBindings_ ((name, val):rest) = putStrLn (showPair name val) >> showBindings_ rest
-showBindings_ [] = return ()
-
-showBindings :: Bindings -> IO ()
-showBindings bindings = putStrLn "Bindings:" >> readIORef bindings >>= showBindings_
+-- | 'showBindings' displays the current bindings.
+showBindings :: Bindings -> String
+showBindings bindings = unlines . map showPair $ Map.toAscList bindings
 
 -------------------------------------------------------------------------------
 ------------------------------ Term Evaluation --------------------------------
@@ -136,6 +132,19 @@ showTheorem (Theorem term) = "Theorem: " ++ show term
 instance Show Theorem where show = showTheorem
 
 -- | A 'Proof' contains a set of bindings and a sequence of theorems.
-type Proof = (IO Bindings, [Theorem])
+data Proof = Proof Bindings [Theorem]
 
-instance Show Proof where show _ = "<proof>"
+-- | 'showProof' returns a 'String' representation of a 'Proof'.
+showProof :: Proof -> String
+showProof p@(Proof b thms)
+  | null b = showProofTheorems p
+  | True   = showProofBindings p
+
+showProofTheorems (Proof _ [])   = "null proof"
+showProofTheorems (Proof _ thms) = "Proof:\n" ++ (unlines $ map show thms)
+
+showProofBindings (Proof b [])   = "Null proof; bindings:\n" ++ showBindings b
+showProofBindings (Proof b thms) = "Proof:\n" ++ (unlines $ map show thms)
+                                      ++ "bindings:\n" ++ showBindings b
+
+instance Show Proof where show = showProof

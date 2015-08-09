@@ -7,29 +7,34 @@ import Data.Logic.Propositional.Class
 import Data.String
 
 testThm = Theorem (Conjunction (Variable "A") (Negation (Variable "A")))
-testProof = (nullBindings, [Axiom "A" True, testThm])
-testProof' = (nullBindings, [Axiom "A" True, (Theorem (Equivalence (Variable "A") (Variable "A")))])
-testProof'' = (nullBindings, [Axiom "A" True, (Theorem (Equivalence (Value True) (Value True)))])
+testProof1 = Proof newBindings [Axiom "A" True, testThm]
+testProof2 = Proof newBindings
+             [Axiom "A" True, (Theorem (Equivalence (Variable "A") (Variable "A")))]
+testProof3 = Proof newBindings
+             [Axiom "A" True, (Theorem (Equivalence (Value True) (Value True)))]
+testProof4 = Proof newBindings [testThm]
+testProof5 = Proof newBindings
+             [Axiom "A" True, Axiom "B" False,
+              Theorem
+              (Equivalence (Variable "A") (Variable "B"))]
 
-showProofBindings :: Proof -> IO ()
-showProofBindings (bindings, _) = do
-    bindings' <- liftIO bindings
-    showBindings bindings'
+testProofs = [testProof1, testProof2, testProof3, testProof4, testProof5]
 
-displayProofBindings :: ProofError Proof -> IO ()
-displayProofBindings proof = do
-    proof' <- runExceptT proof
-    case proof' of
-        Left  err -> putStrLn (show err)
-        Right val -> showProofBindings val
-
+checkProof :: Proof -> IO String
 checkProof proof = do
-    result <- runExceptT $ check proof
-    case result of
-        Left err -> return $ show err
-        Right v  -> return "OK"
+  result <- runExceptT $ check proof
+  case result of
+    Left err  -> return $ "Proof is inconsistent: " ++ (show err)
+    Right p   -> return $ "Proof is consistent\n" ++ (show p)
 
-main = (putStrLn "Test theorem:")
-        >> (putStrLn $ show testThm)
-        >> putStrLn "Evaluation:"
-        >> (checkProof testProof >>= putStrLn)
+runProof :: Proof -> IO ()
+runProof proof = do
+  putStrLn "\nChecking proof"
+  putStrLn $ show proof
+  checkProof proof >>= putStrLn
+
+runProofs :: [Proof] -> IO ()
+runProofs (p:p') = runProof p >> runProofs p'
+runProofs []     = return ()
+
+main = runProofs testProofs

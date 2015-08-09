@@ -54,6 +54,7 @@ library
   build-depends:       base >=4.8 && <4.9
                      , transformers >= 0.4 && <= 1.0
                      , mtl >= 2.2 && <= 3.0
+                     , containers >= 0.5 && <= 1.0
 
   exposed-modules:     Data.Logic.Propositional
   
@@ -77,6 +78,7 @@ executable plc
   build-depends:       base >=4.8 && <4.9
                      , transformers >= 0.4 && <= 1.0
                      , mtl >= 2.2 && <= 3.0
+                     , containers >= 0.5 && <= 1.0
   
   -- Directories containing source files.
   hs-source-dirs:      src

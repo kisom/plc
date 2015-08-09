@@ -19,46 +19,58 @@ import Data.Logic.Propositional.Class
 -------------------------------- Truth Tables ---------------------------------
 -------------------------------------------------------------------------------
 
+truth :: Bindings -> Term -> ProofError Bool
+truth bindings term = do
+  liftIO $ putStrLn $ "Evaluating term: " ++ (show term)
+  truthTable bindings term
+
 -- | 'truthTable' records the expected value of a given term.
 truthTable :: Bindings -> Term -> ProofError Bool
 truthTable bindings (Value v)         = return v
-truthTable bindings (Variable name)   = getName bindings name
+truthTable bindings (Variable name)   = getName bindings name >>= truth bindings
 truthTable bindings (Implies p q)     = do
-    p' <- truthTable bindings p
-    q' <- truthTable bindings q
+    p' <- truth bindings p
+    q' <- truth bindings q
     return (if p' && (not q')
          then False
          else True)
 truthTable bindings (Conjunction p q) = do
-    p' <- truthTable bindings p
-    q' <- truthTable bindings q
+    p' <- truth bindings p
+    q' <- truth bindings q
     return $ p' && q'
 truthTable bindings (Disjunction p q) = do
-    p' <- truthTable bindings p
-    q' <- truthTable bindings q
+    p' <- truth bindings p
+    q' <- truth bindings q
     return $ p' || q'
 truthTable bindings (Equivalence p q) = do
-    p' <- truthTable bindings p
-    q' <- truthTable bindings q
-    return $ p' == q'
+    p' <- truth bindings p
+    q' <- truth bindings q
+    if p' == q'
+       then return True
+       else throwError $ Inconsistent (Equivalence p q)
 truthTable bindings (Negation p)      = do
-    p' <- truthTable bindings p
+    p' <- truth bindings p
     return $ not p'
 
-evaluate :: Bindings -> Theorem -> ProofError Bool
-evaluate bindings (Axiom name value) = bindName bindings name value
-evaluate bindings (Theorem term)     = truthTable bindings term
+data Step = Step Bindings Bool
+
+evaluate :: Bindings -> Theorem -> ProofError Step
+evaluate bindings (Axiom name value) = do
+    result <- bindName bindings name value
+    return $ Step result True
+evaluate bindings (Theorem term)     = truth bindings term >>=
+                                       return . Step bindings
 
 step :: Proof -> ProofError Proof
-step (bindings, (theorem:theorems)) = do
-    liftIO $ putStrLn $ "Evaluating " ++ show theorem
-    bindings' <- liftIO bindings
-    result    <- liftIO $ runExceptT $ evaluate bindings' theorem
-    case result of
-        Left   err -> throwError err
-        Right val  -> return (bindings, theorems)
+step (Proof bindings (theorem:theorems)) = do
+  liftIO $ putStrLn $ "Evaluating theorem: " ++ (show theorem)
+  result <- liftIO $ runExceptT $ evaluate bindings theorem
+  case result of
+    Right (Step bindings' _) -> return $ Proof bindings' theorems
+    Left err                 -> throwError err
+step proof = return proof
 
-check :: Proof -> ProofError Bool
-check (_, []) = return True
-check proof = step proof >>= check
+check :: Proof -> ProofError Proof
+check proof@(Proof _ (_:_)) = step proof >>= check
+check proof@(Proof _ [])    = return $ proof
 

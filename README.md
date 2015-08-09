@@ -10,10 +10,106 @@ that attempt.
 ## Current Status
 
 ```
-*Main> checkProof testProof''
-Evaluating Axiom: A ← True
-Evaluating Theorem: t ~ t
-"OK"
+*Main> :t testProof1                                                                            [41/1993]
+testProof1 :: Proof
+*Main> :info Proof
+data Proof = Proof Bindings [Theorem]
+        -- Defined at src/Data/Logic/Propositional/Class.hs:135:1
+instance Show Proof
+  -- Defined at src/Data/Logic/Propositional/Class.hs:150:10
+*Main> testProofs
+[Proof:
+Axiom: A ← True
+Theorem: A ^ !A
+,Proof:
+Axiom: A ← True
+Theorem: A ~ A
+,Proof:
+Axiom: A ← True
+Theorem: t ~ t
+,Proof:
+Theorem: A ^ !A
+,Proof:
+Axiom: A ← True
+Axiom: B ← False
+Theorem: A ~ B
+]
+*Main> runProofs testProofs
+
+Checking proof
+Proof:
+Axiom: A ← True
+Theorem: A ^ !A
+
+Evaluating theorem: Axiom: A ← True
+Evaluating theorem: Theorem: A ^ !A
+Evaluating term: A ^ !A
+Evaluating term: A
+Evaluating term: t
+Evaluating term: !A
+Evaluating term: A
+Evaluating term: t
+Proof is consistent
+Null proof; bindings:
+A <- True
+
+
+Checking proof
+Proof:
+Axiom: A ← True
+Theorem: A ~ A
+
+Evaluating theorem: Axiom: A ← True
+Evaluating theorem: Theorem: A ~ A
+Evaluating term: A ~ A
+Evaluating term: A
+Evaluating term: t
+Evaluating term: A
+Evaluating term: t
+Proof is consistent
+Null proof; bindings:
+A <- True
+
+
+Checking proof
+Proof:
+Axiom: A ← True
+Theorem: t ~ t
+
+Evaluating theorem: Axiom: A ← True
+Evaluating theorem: Theorem: t ~ t
+Evaluating term: t ~ t
+Evaluating term: t
+Evaluating term: t
+Proof is consistent
+Null proof; bindings:
+A <- True
+
+
+Checking proof
+Proof:
+Theorem: A ^ !A
+
+Evaluating theorem: Theorem: A ^ !A
+Evaluating term: A ^ !A
+Evaluating term: A
+Proof is inconsistent: The variable A is unbound.
+
+Checking proof
+Proof:
+Axiom: A ← True
+Axiom: B ← False
+Theorem: A ~ B
+
+Evaluating theorem: Axiom: A ← True
+Evaluating theorem: Axiom: B ← False
+Evaluating theorem: Theorem: A ~ B
+Evaluating term: A ~ B
+Evaluating term: A
+Evaluating term: t
+Evaluating term: B
+Evaluating term: f
+Proof is inconsistent: The term A ~ B is inconsistent.
 ```
 
 ## Source files
@@ -34,16 +130,4 @@ The implementation is covered in:
   which is rather unwieldy. Something to think about: precedence and order
   of operations.
 
-+ Bindings aren't working:
-
-```
-*Main> checkProof testProof
-Evaluating Axiom: A ← True
-Evaluating Theorem: A ^ !A
-"The variable A is unbound."
-*Main> checkProof testProof'
-Evaluating Axiom: A ← True
-Evaluating Theorem: A ~ A
-"The variable A is unbound."
-```
 
