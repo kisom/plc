@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 -- |
 -- Module      : Data.Logic.Propositional.Class
 -- Copyright   : (c) K. Isom (2015)
@@ -22,7 +24,8 @@ import Data.IORef
 -------------------------------------------------------------------------------
 
 -- | A 'Term' is a single term in the propositional calculus.
-data Term = Variable String
+data Term = Value Bool
+          | Variable String
           | Implies Term Term
           | Conjunction Term Term
           | Disjunction Term Term
@@ -31,12 +34,14 @@ data Term = Variable String
 
 -- | 'showTerm' returns a 'String' representation of a 'Term'.
 showTerm :: Term -> String
+showTerm (Value True)      = "t"
+showTerm (Value False)     = "f"
 showTerm (Variable var)    = var
-showTerm (Implies p q)     = (show p) ++ " ⊃ " ++ (show q)
-showTerm (Conjunction p q) = (show p) ++ " ∧ " ++ (show q)
-showTerm (Disjunction p q) = (show p) ++ " ∨ " ++ (show q)
+showTerm (Implies p q)     = (show p) ++ " => " ++ (show q)
+showTerm (Conjunction p q) = (show p) ++ " ^ " ++ (show q)
+showTerm (Disjunction p q) = (show p) ++ " v " ++ (show q)
 showTerm (Equivalence p q) = (show p) ++ " ~ " ++ (show q)
-showTerm (Negation p)      =  "¬" ++ (show p)
+showTerm (Negation p)      =  "!" ++ (show p)
 
 -- | The implementation of the 'Show' typeclass for 'Term' uses
 --   'showTerm'.
@@ -64,6 +69,9 @@ instance Show Error where show = showError
 -- | 'ProofError' adds the 'Error' type to the 'IO' monad.
 type ProofError = ExceptT Error IO
 
+-- | trapError is used to return a string containing the result of a ProofError.
+trapError action = catchError action (return . show)
+
 -------------------------------------------------------------------------------
 -------------------------------- Binding -----------------------------------
 -------------------------------------------------------------------------------
@@ -80,6 +88,14 @@ nullBindings = newIORef []
 isBound :: Bindings -> String -> IO Bool
 isBound bindings name = readIORef bindings >>= return . maybe False (const True) . lookup name
 
+-- | 'getName' returns the binding for a name in the set of bindings.
+getName :: Bindings -> String -> ProofError Bool
+getName bindings name = do
+    bindings' <- liftIO $ readIORef bindings
+    maybe (throwError $ Unbound name)
+          (return . id)
+          (lookup name bindings')
+
 -- | 'bindName' adds a binding to the set.
 bindName :: Bindings -> String -> Bool -> ProofError Bool
 bindName bindings name val = do
@@ -88,8 +104,18 @@ bindName bindings name val = do
     case exists of
         True  -> throwError $ Rebinding name
         False -> do
-            val' <- liftIO $ atomicWriteIORef bindings ((name, val) : bindings')
+            val' <- liftIO $ writeIORef bindings ((name, val) : bindings')
             return val
+
+showPair :: String -> Bool -> String
+showPair name val = name ++ " <- " ++ (show val)
+
+showBindings_ :: [(String, Bool)] -> IO ()
+showBindings_ ((name, val):rest) = putStrLn (showPair name val) >> showBindings_ rest
+showBindings_ [] = return ()
+
+showBindings :: Bindings -> IO ()
+showBindings bindings = putStrLn "Bindings:" >> readIORef bindings >>= showBindings_
 
 -------------------------------------------------------------------------------
 ------------------------------ Term Evaluation --------------------------------
@@ -110,5 +136,6 @@ showTheorem (Theorem term) = "Theorem: " ++ show term
 instance Show Theorem where show = showTheorem
 
 -- | A 'Proof' contains a set of bindings and a sequence of theorems.
-type Proof = (Bindings, [Theorem])
+type Proof = (IO Bindings, [Theorem])
 
+instance Show Proof where show _ = "<proof>"
