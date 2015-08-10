@@ -69,4 +69,4 @@ runProofs :: [Proof] -> IO ()
 runProofs (p:p') = runProof p >> runProofs p'
 runProofs []     = return ()
 
-main = runProofs testProofs
+main = interactive newBindings

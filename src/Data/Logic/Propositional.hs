@@ -11,13 +11,15 @@
 -- proofs. 
 
 module Data.Logic.Propositional (
-  Result (..)
- ,prove
+    Result (..)
+  , prove
+  , interactive
 ) where
 
 import Control.Monad.Except
 import Data.Logic.Propositional.Class
 import qualified Data.Logic.Propositional.Parser as Parser
+import qualified System.IO as IO
 
 -------------------------------------------------------------------------------
 -------------------------------- Truth Tables ---------------------------------
@@ -65,6 +67,9 @@ showResult (Result b _ v) = "Result:\n-------\nBindings:\n" ++ (show b)
 
 instance Show Result where show = showResult
 
+proofResult :: Proof -> Result
+proofResult (Proof b thms) = Result b thms False
+
 data Step = Step Bindings Bool
 
 evaluate :: Bindings -> Theorem -> ProofError Step
@@ -100,3 +105,38 @@ prove proof = do
     Left err                 -> throwError err
     Right (Result b _ True)  -> return b
     Right (Result _ _ False) -> throwError Invalid
+
+prnFlush :: String -> IO ()
+prnFlush s = putStr s >> IO.hFlush IO.stdout
+
+readPrompt :: String -> IO String
+readPrompt prompt = prnFlush prompt >> IO.getLine
+
+displayResult :: ProofError Result -> IO String
+displayResult proof = do
+  result <- runExceptT proof
+  case result of
+    Left err -> return $ show err
+    Right p  -> return $ show p
+
+
+evalLine :: Bindings -> String -> ProofError Result
+evalLine b line = Parser.readExpr line >>= addTheorem >>= step
+   where addTheorem thm = return $ Result b [thm] False
+
+interactive :: Bindings -> IO ()
+interactive initial = do
+  line <- readPrompt "PLC> "
+  case line of
+    "quit" -> putStrLn "Goodbye."
+    _    -> interactiveEval initial line
+
+interactiveEval :: Bindings -> String -> IO ()
+interactiveEval b s = do
+  displayResult result >>= putStrLn
+  result' <- runExceptT result
+  case result' of
+    Left err -> interactive b
+    Right (Result b' _ _) -> interactive b'
+  where result = evalLine b s
+

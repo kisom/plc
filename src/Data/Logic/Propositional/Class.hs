@@ -38,9 +38,9 @@ showTerm :: Term -> String
 showTerm (Value True)      = "t"
 showTerm (Value False)     = "f"
 showTerm (Variable var)    = var
-showTerm (Implies p q)     = (show p) ++ " => " ++ (show q)
-showTerm (Conjunction p q) = (show p) ++ " ^ " ++ (show q)
-showTerm (Disjunction p q) = (show p) ++ " v " ++ (show q)
+showTerm (Implies p q)     = (show p) ++ " -> " ++ (show q)
+showTerm (Conjunction p q) = (show p) ++ " & " ++ (show q)
+showTerm (Disjunction p q) = (show p) ++ " | " ++ (show q)
 showTerm (Equivalence p q) = (show p) ++ " ~ " ++ (show q)
 showTerm (Negation p)      =  "!" ++ (show p)
 
@@ -57,6 +57,7 @@ data Error = Unbound String     -- ^ A variable that should be bound isn't.
            | Rebinding String   -- ^ A variable is being rebound.
            | Inconsistent Term  -- ^ The term is inconsistent.
            | Invalid            -- ^ The proof is invalid.
+           | Syntax String      -- ^ There was a syntax error parsing the proof.
 
 -- | 'showError' returns a 'String' representation of an 'Error'.
 showError :: Error -> String
@@ -64,6 +65,7 @@ showError (Unbound name) = "The variable " ++ name ++ " is unbound."
 showError (Rebinding name) = "The variable " ++ name ++ " is already bound and can't be rebound."
 showError (Inconsistent term) = "The term " ++ (show term) ++ " is inconsistent."
 showError Invalid = "The proof evaluated to False."
+showError (Syntax s) = "Syntax error in " ++ s ++ "."
 
 -- | The implementation of the 'Show' typeclass for 'Error' uses
 --   'showError'.
@@ -72,8 +74,13 @@ instance Show Error where show = showError
 -- | 'ProofError' adds the 'Error' type to the 'IO' monad.
 type ProofError = ExceptT Error IO
 
--- | trapError is used to return a string containing the result of a ProofError.
+-- | 'trapError' is used to return a string containing the result of a ProofError.
 trapError action = catchError action (return . show)
+
+-- | 'displayError' returns a string result from a proof error.
+displayError result = case runExceptT result of
+  Left err  -> show err
+  Right val -> show val
 
 -------------------------------------------------------------------------------
 -------------------------------- Binding -----------------------------------
