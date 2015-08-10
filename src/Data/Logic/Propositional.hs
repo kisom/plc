@@ -10,10 +10,14 @@
 -- This is a library for representing and implementing propositional logic
 -- proofs. 
 
-module Data.Logic.Propositional where
+module Data.Logic.Propositional (
+  Result (..)
+ ,prove
+) where
 
 import Control.Monad.Except
 import Data.Logic.Propositional.Class
+import qualified Data.Logic.Propositional.Parser as Parser
 
 -------------------------------------------------------------------------------
 -------------------------------- Truth Tables ---------------------------------
@@ -24,7 +28,9 @@ truth bindings term = do
   liftIO $ putStrLn $ "Evaluating term: " ++ (show term)
   truthTable bindings term
 
--- | 'truthTable' records the expected value of a given term.
+-- | Evaluates a term in the context of a set of bindings; it returns a
+--   'ProofError' containing either an error in the proof or a 'Bool'
+--   result of the logical operation.
 truthTable :: Bindings -> Term -> ProofError Bool
 truthTable bindings (Value v)         = return v
 truthTable bindings (Variable name)   = getName bindings name >>= truth bindings
@@ -50,6 +56,7 @@ truthTable bindings (Negation p)      = do
     p' <- truth bindings p
     return $ not p'
 
+-- | A 'Result' contains the result of a proof.
 data Result = Result Bindings [Theorem] Bool
 
 showResult :: Result -> String
@@ -84,6 +91,8 @@ check (Proof b thms) = check' (Result b thms False)
   where check' proof@(Result _ (_:_) _) = step proof >>= check'
         check' result@(Result _ [] _)    = return result
 
+-- | 'prove' runs through the proof, ensuring that it is valid and that
+--   it isn't inconsistent.
 prove :: Proof -> ProofError Bindings
 prove proof = do
   result <- liftIO $ runExceptT $ check proof

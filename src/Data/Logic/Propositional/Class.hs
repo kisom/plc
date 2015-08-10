@@ -145,9 +145,14 @@ showProof p@(Proof b thms)
   | nullBindings b = showProofTheorems p
   | True           = showProofBindings p
 
+-- | 'showProofTheorems' returns a string representation of only the
+--   proofs in a 'Proof'. This is called when there are no bindings
+--   in the proof to be shown.
 showProofTheorems (Proof _ [])   = "null proof"
 showProofTheorems (Proof _ thms) = "Proof:\n" ++ (unlines $ map show thms)
 
+-- | 'showProofBindings' returns a string representation of the proof
+--   and its bindings.
 showProofBindings (Proof b [])   = "Null proof; bindings:\n" ++ showBindings b
 showProofBindings (Proof b thms) = "Proof:\n" ++ (unlines $ map show thms)
                                       ++ "bindings:\n" ++ showBindings b
