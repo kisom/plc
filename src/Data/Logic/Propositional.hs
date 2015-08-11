@@ -72,6 +72,9 @@ proofResult (Proof b thms) = Result b thms False
 
 data Step = Step Bindings Bool
 
+instance Show Step where
+    show (Step b v) = "Result: " ++ show v ++ "\nBindings:\n" ++ show b
+
 evaluate :: Bindings -> Theorem -> ProofError Step
 evaluate bindings (Axiom name value) = do
     result <- bindName bindings name value
@@ -112,31 +115,33 @@ prnFlush s = putStr s >> IO.hFlush IO.stdout
 readPrompt :: String -> IO String
 readPrompt prompt = prnFlush prompt >> IO.getLine
 
-displayResult :: ProofError Result -> IO String
+displayResult :: Either Error Step -> IO String
 displayResult proof = do
-  result <- runExceptT proof
-  case result of
-    Left err -> return $ show err
-    Right p  -> return $ show p
+  return $ case proof of
+                        Left err -> show err
+			Right s  -> show s
 
+evalLine :: Bindings -> String -> ProofError Step
+evalLine b line = Parser.readExpr line >>= evaluate b
 
-evalLine :: Bindings -> String -> ProofError Result
-evalLine b line = Parser.readExpr line >>= addTheorem >>= step
-   where addTheorem thm = return $ Result b [thm] False
-
+-- | interactive runs a sort of REPL; users enter their proof, one line
+--   at a time, and PLC builds a proof from that. The REPL runs until
+--   the user enters "quit".
 interactive :: Bindings -> IO ()
 interactive initial = do
   line <- readPrompt "PLC> "
   case line of
     "quit" -> putStrLn "Goodbye."
+    "clear" -> putStrLn "Cleared bindings." >> interactive newBindings
+    "bindings" -> putStrLn $ show initial
     _    -> interactiveEval initial line
 
 interactiveEval :: Bindings -> String -> IO ()
 interactiveEval b s = do
-  displayResult result >>= putStrLn
-  result' <- runExceptT result
+  let result = runExceptT $ evalLine b s
+  result >>= displayResult >>= putStrLn
+  result' <- result
   case result' of
     Left err -> interactive b
-    Right (Result b' _ _) -> interactive b'
-  where result = evalLine b s
+    Right (Step b' _) -> interactive b'
 

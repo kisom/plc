@@ -11,7 +11,9 @@
 -- logic proofs. This module contains the parser for converting string
 -- representations into theorems.
 
-module Data.Logic.Propositional.Parser where
+module Data.Logic.Propositional.Parser (
+    readExpr
+) where
 
 import Data.Logic.Propositional.Class
 
@@ -77,6 +79,10 @@ parseAxiom s = case P.parse axiom "axiom-parser" s of
     Left err  -> throwError $ Syntax $ show err
     Right val -> return $ val
 
+-- | 'readExpr' attempts to parse the 'String' passed in as a
+--   'Theorem'. Axioms should be entered by prefacing the axiom
+--   with "axiom: "; similarly, theorems should be entered using
+--   "theorem: " as the preface.
 readExpr :: String -> ProofError Theorem
 readExpr s = case head tokens of
   "axiom:"   -> parseAxiom body

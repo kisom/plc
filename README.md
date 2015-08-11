@@ -120,6 +120,9 @@ by the definition. A theorem (which will be checked) is entered with
 and will display all steps in the evaluation, the current bindings, and
 the truth value of the last axiom or theorem.
 
+Exit the "prover" with "quit". Clear bindings with "clear". Show bindings
+using "bindings".
+
 ## Source files
 
 The implementation is covered in:
@@ -135,4 +138,5 @@ The implementation is covered in:
 ## TODO
 
 + Improve parsing. It's fairly wonky.
+
 
